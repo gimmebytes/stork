@@ -18,6 +18,7 @@ package com.fizzed.stork.deploy;
 import static com.fizzed.blaze.Contexts.fail;
 import com.fizzed.blaze.core.Actions;
 import com.fizzed.blaze.core.UnexpectedExitValueException;
+import com.fizzed.blaze.ssh.SshException;
 import com.fizzed.blaze.ssh.SshExec;
 import com.fizzed.blaze.ssh.SshSession;
 import com.fizzed.blaze.util.Streamables;
@@ -28,16 +29,11 @@ import com.fizzed.blaze.ssh.SshFile;
 import com.fizzed.blaze.ssh.SshFileAttributes;
 import com.fizzed.blaze.ssh.SshSftpNoSuchFileException;
 import com.fizzed.blaze.ssh.SshSftpSession;
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.nio.file.Files;
+import com.fizzed.crux.util.StopWatch;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.stream.Collectors;
 
 public class UnixTarget extends SshTarget {
     static private final Logger log = LoggerFactory.getLogger(UnixTarget.class);
@@ -66,6 +62,30 @@ public class UnixTarget extends SshTarget {
             });
             return basicFiles;
         } catch (SshSftpNoSuchFileException e) {
+            return null;
+        }
+    }
+    
+    public Map<String,String> listFileHashes(Object path) {
+        try {
+            List<SshFile> files = sftp.ls(path.toString());
+            
+            
+            log.info("md5sum " + path + "/*");
+            
+            String fileHashes
+                = sshExec(true, true, "md5sum " + path + "/*")
+                    .pipeOutput(Streamables.captureOutput())
+                    .pipeError(Streamables.nullOutput())
+                    .runResult()
+                    .map(Actions::toCaptureOutput)
+                    .asString()
+                    .trim();
+            
+            log.info("hashes: {}", fileHashes);
+            
+            return null;
+        } catch (SshException e) {
             return null;
         }
     }
@@ -258,12 +278,11 @@ public class UnixTarget extends SshTarget {
                     log.info("Trying to start daemon {}...", daemon.getName());
                     sshExec(true, false, "systemctl", "start", daemon.getName()).run();
 
-                    // wait for service to truly start
-                    long timeout = 15000L;
-                    long now = System.currentTimeMillis();
-                    boolean confirmed = false;
-                    
-                    while (System.currentTimeMillis() < (now+timeout)) {
+                    // query up to 6 seconds to verify its still running
+                    final StopWatch timer = StopWatch.timeMillis();
+                    while (timer.elapsed() < 5000L) {
+                        Thread.sleep(1000L);
+                        
                         log.info("Querying systemctl to verify {} started...", daemon.getName());
                         
                         // run a status command so user can see what's up
@@ -273,22 +292,9 @@ public class UnixTarget extends SshTarget {
                                 .runResult()
                                 .map(Actions::toCaptureOutput)
                                 .asString();
-                        
-                        // TODO: this needs to be configurable!
-                        if (output.contains("OK")) {
-                            confirmed = true;
-                            break;
-                        }
-                        
-                        Thread.sleep(1000L);
                     }
                     
-                    if (!confirmed) {
-                        sshExec(true, false, "systemctl", "status", daemon.getName()).run();
-                        throw new DeployerException("Unable to confirm service started within " + timeout + " ms");
-                    } else {
-                        log.info("Daemon {} started!", daemon.getName());
-                    }
+                    log.info("Daemon {} started!", daemon.getName());
                 } catch (UnexpectedExitValueException e) {
                     // run a status command so user can see what's up
                     sshExec(true, false, "systemctl", "status", daemon.getName()).run();

@@ -19,6 +19,7 @@ import com.fizzed.blaze.util.ImmutableUri;
 import java.io.Closeable;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 
 abstract public class Target implements Closeable {
     
@@ -60,6 +61,8 @@ abstract public class Target implements Closeable {
     abstract public boolean hasGroup(String group);
 
     abstract public List<BasicFile> listFiles(Object path);
+    
+    abstract public Map<String,String> listFileHashes(Object path);
     
     abstract public Path readlink(Object path);
     

@@ -69,6 +69,10 @@ public class Deployer {
         logInstallDeployment(install, existing);
         log.info("");
         
+        log.info("Calculating md5...");
+        
+        target.listFileHashes(existing.getVersionDir() + "/lib");
+        
         /**
         if (!options.getYes()) {
             String answer = Contexts.prompt("Do you want to continue?");
@@ -191,23 +195,25 @@ public class Deployer {
             target.chown(true, true, owner.get(), install.getVersionDir());
         }
 
-        // NOTE: why 774?
-        // only user & group can get into the directory, while anyone will at
-        // least be able to know there is a directory with that name
+        // strict permissions for user & group of app: we suggest you add the
+        // app group to yourself as a supplementary group if you want to tail
+        // logs and do any sort of management with the app
         if (assembly.hasDirectory("bin")) {
-            target.chmod(true, true, "774", install.getVersionDir() + "/bin");
+            target.chmod(true, true, "770", install.getVersionDir() + "/bin");
         }
         
         if (assembly.hasDirectory("conf")) {
-            target.chmod(true, true, "774", install.getVersionDir() + "/conf");
+            // directory is executable, but contents are read/write
+            target.chmod(true, false, "770", install.getVersionDir() + "/conf");
+            target.chmod(true, true, "660", install.getVersionDir() + "/conf/*");
         }
 
         if (assembly.hasDirectory("lib")) {
-            target.chmod(true, true, "774", install.getVersionDir() + "/lib");
+            target.chmod(true, true, "770", install.getVersionDir() + "/lib");
         }
         
         if (assembly.hasDirectory("share/init.d")) {
-            target.chmod(true, true, "774", install.getVersionDir() + "/share/init.d");
+            target.chmod(true, true, "770", install.getVersionDir() + "/share/init.d");
         }
 
         //
