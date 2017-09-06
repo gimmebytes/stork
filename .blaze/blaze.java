@@ -46,7 +46,7 @@ public class blaze {
     public void demo_deploy() {
         String host = getTestHost(true);
         exec("mvn", "package", "-DskipTests=true", "-am", "-pl", "stork-cli").run();
-        exec("stork-deploy", "-a", "stork-deploy/src/test/resources/fixtures/hello-console-1.2.4.tar.gz", "vagrant+ssh://" + host)
+        exec("stork-deploy", "--user", "hello", "--group", "hello", "-a", "stork-deploy/src/test/resources/fixtures/hello-console-1.2.4.tar.gz", "vagrant+ssh://" + host)
             .path("stork-cli/target/stork/bin")
             .run();
     }

@@ -68,15 +68,14 @@ public class UnixTarget extends SshTarget {
     
     public Map<String,String> listFileHashes(Object path) {
         try {
-            List<SshFile> files = sftp.ls(path.toString());
-            
-            
-            log.info("md5sum " + path + "/*");
+            // get list of files first
+            //List<SshFile> files = sftp.ls(path.toString());
             
             String fileHashes
-                = sshExec(true, true, "md5sum " + path + "/*")
+                = sshExec(false, true, "md5sum -b " + path.toString() + "/*")
+                    //.arg()
                     .pipeOutput(Streamables.captureOutput())
-                    .pipeError(Streamables.nullOutput())
+                    //.pipeError(Streamables.nullOutput())
                     .runResult()
                     .map(Actions::toCaptureOutput)
                     .asString()
@@ -84,8 +83,23 @@ public class UnixTarget extends SshTarget {
             
             log.info("hashes: {}", fileHashes);
             
+            //log.info("files {}", files.stream().map(f -> f.path()).toArray());
+
+//            String fileHashes
+//                = sshExec(false, false, "which", "md5sum")
+//                    //.arg(files.stream().map(f -> f.path()).toArray())
+//                    .pipeOutput(Streamables.captureOutput())
+//                    //.pipeError(Streamables.nullOutput())
+//                    .runResult()
+//                    .map(Actions::toCaptureOutput)
+//                    .asString()
+//                    .trim();
+            
+            
+            
             return null;
         } catch (SshException e) {
+            log.error("Unable to list file hashes", e);
             return null;
         }
     }
