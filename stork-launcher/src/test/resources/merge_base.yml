@@ -1,0 +1,9 @@
+name: "some-app"
+domain: "com.foobar.myapp"
+display_name: "Some App"
+short_description: "Some App"
+type: DAEMON
+main_class: "com.foobar.myapp.App"
+platforms: [ LINUX ]
+app_args: ""
+java_args: "-Dsome-common-argument=true"

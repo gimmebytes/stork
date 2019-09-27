@@ -1,0 +1,5 @@
+platform_configurations:
+  LINUX:
+    user: "my-app-user"
+    group: "my-app-user"
+java_args: "-Dsome-specifc-argument=false"
